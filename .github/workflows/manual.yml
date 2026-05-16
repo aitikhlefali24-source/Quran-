@@ -1,4 +1,4 @@
-name: Build Android APK from ZIP
+name: Build Android APK Auto-Detect
 
 on:
   push:
@@ -13,27 +13,31 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Unzip Project
-      run: unzip QuranAutoPlayerProject.zip
+      run: unzip -q *.zip
 
     - name: set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
 
-    - name: Grant execute permission for gradlew
+    - name: Smart Build with Gradle
       run: |
-        cd QuranAutoPlayerProject
+        # البحث عن مسار الملف تلقائياً
+        GRADLE_PATH=$(find . -name "gradlew" | head -n 1)
+        
+        if [ -z "$GRADLE_PATH" ]; then
+          echo "Error: gradlew not found! Your ZIP is missing the Gradle wrapper files."
+          exit 1
+        fi
+        
+        # الدخول للمسار الصحيح وبناء التطبيق
+        cd $(dirname "$GRADLE_PATH")
         chmod +x gradlew
-
-    - name: Build with Gradle
-      run: |
-        cd QuranAutoPlayerProject
         ./gradlew assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug
-        path: QuranAutoPlayerProject/app/build/outputs/apk/debug/app-debug.apk
+        name: quran-player-apk
+        path: '**/*.apk'
